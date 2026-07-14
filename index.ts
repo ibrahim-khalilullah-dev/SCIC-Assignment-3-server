@@ -2,21 +2,14 @@ import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { MongoClient } from "mongodb";
+import { connectDatabase } from "./db";
 
 dotenv.config();
-
-const uri = process.env.MONGO_URI;
-if (!uri) {
-  throw new Error("MONGO_URI is not defined in environment variables");
-}
 
 const PORT = process.env.PORT || 5000;
 const app = express();
 
-const allowedOrigins = [
-  process.env.CLIENT_URL || "http://localhost:3000"
-];
+const allowedOrigins = [process.env.CLIENT_URL || "http://localhost:3000"];
 
 app.use(
   cors({
@@ -30,31 +23,32 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-  })
+  }),
 );
 
 app.use(express.json());
 app.use(cookieParser());
 
-const client = new MongoClient(uri);
-const db = client.db("NextMart");
-
-client.connect()
-  .then(() => {
-    console.log("Database connected successfully to NextMart");
-  })
-  .catch((err) => {
-    console.error("Database connection failed:", err);
-  });
-
 app.get("/", (req: Request, res: Response) => {
   res.send("Server is up and running!");
 });
 
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
+async function startServer() {
+  try {
+    await connectDatabase();
+    console.log("Database connected successfully to NextMart");
+
+    if (process.env.NODE_ENV !== "production") {
+      app.listen(PORT, () => {
+        console.log(`Server listening on port ${PORT}`);
+      });
+    }
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    process.exit(1);
+  }
 }
 
-export { app, db };
+startServer();
+
+export { app };
