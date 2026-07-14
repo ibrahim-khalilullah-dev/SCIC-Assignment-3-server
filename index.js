@@ -14,12 +14,25 @@ if (!uri) {
 const PORT = process.env.PORT || 5000;
 const app = express();
 
-const corsOptions = {
-  origin: [process.env.CLIENT_URL || "http://localhost:3000"],
-  credentials: true,
-};
+const allowedOrigins = [
+  process.env.CLIENT_URL || "http://localhost:3000"
+];
 
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
